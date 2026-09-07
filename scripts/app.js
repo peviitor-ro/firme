@@ -12,66 +12,203 @@ let currentPage = 1;
 let rowsPerPage = 20;
 let totalPages = 1;
 
-// Submit form
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// Safely extract and parse JSON payload (object or array) from response
+async function fetchJsonSafely(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`HTTP error: ${response.status}`);
+  }
+  const rawText = await response.text();
+  const objStart = rawText.indexOf("{");
+  const arrStart = rawText.indexOf("[");
+
+  if (arrStart !== -1 && (objStart === -1 || arrStart < objStart)) {
+    const arrEnd = rawText.lastIndexOf("]");
+    if (arrEnd !== -1) {
+      return JSON.parse(rawText.substring(arrStart, arrEnd + 1));
+    }
+  }
+
+  if (objStart !== -1) {
+    const objEnd = rawText.lastIndexOf("}");
+    if (objEnd !== -1) {
+      return JSON.parse(rawText.substring(objStart, objEnd + 1));
+    }
+  }
+
+  throw new Error("Invalid server response.");
+}
+
+// Extract locality and county from company and ANAF data
+function extractLocation(company, anaf = {}) {
+  let localitate =
+    anaf.localitate ||
+    (Array.isArray(company.location)
+      ? company.location[0]
+      : company.location) ||
+    (Array.isArray(company.localitate)
+      ? company.localitate[0]
+      : company.localitate) ||
+    "Nespecificat";
+
+  let judet =
+    anaf.judet ||
+    (Array.isArray(company.judet) ? company.judet[0] : company.judet);
+
+  const rawAddress =
+    (Array.isArray(company.address) ? company.address[0] : company.address) ||
+    (Array.isArray(company.adresa_completa)
+      ? company.adresa_completa[0]
+      : company.adresa_completa) ||
+    anaf.adresa ||
+    (Array.isArray(company.location)
+      ? company.location[0]
+      : company.location) ||
+    "";
+
+  if (!judet && rawAddress) {
+    const matchJud = rawAddress.match(/jud\.?\s*([^,]+)/i);
+    if (matchJud) {
+      judet = matchJud[1].trim();
+    } else {
+      const parts = rawAddress
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (parts.length > 0) {
+        judet = parts[parts.length - 1];
+      }
+    }
+  }
+
+  if (localitate && localitate.includes("MUN.")) {
+    const matchMun = localitate.match(/mun\.?\s*([^,]+)/i);
+    if (matchMun) {
+      localitate = matchMun[1].trim();
+    }
+  } else if (localitate && localitate.includes("Loc.")) {
+    const matchLoc = localitate.match(/loc\.?\s*([^,]+)/i);
+    if (matchLoc) {
+      localitate = matchLoc[1].trim();
+    }
+  }
+
+  if (!judet && localitate !== "Nespecificat") {
+    judet = localitate;
+  }
+
+  return {
+    localitate: localitate || "Nespecificat",
+    judet: judet || "Nespecificat",
+  };
+}
+
+// Handle search form submission
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const searchValue = input.value.trim();
-  localStorage.setItem("lastSearch", searchValue);
-  currentPage = 1; // Reset to page 1 on new search
+  sessionStorage.setItem("lastSearch", searchValue);
+  currentPage = 1;
   await searchCompany(searchValue, currentPage, rowsPerPage);
 });
 
-// Load saved search on page load
+// Restore saved search on page load within session
 window.addEventListener("DOMContentLoaded", async () => {
-  const savedSearch = localStorage.getItem("lastSearch") || "";
+  const savedSearch = sessionStorage.getItem("lastSearch") || "";
   input.value = savedSearch;
   await searchCompany(savedSearch, currentPage, rowsPerPage);
 });
 
-// Company search with pagination
+// Search companies with a single API call per page/search
 async function searchCompany(query = "", page = 1, rows = 20) {
   try {
-    const actualQuery = query.trim() || "a";
-    const response = await fetch(
-      `https://api.peviitor.ro/v6/firme/qsearch/?q=${encodeURIComponent(
-        actualQuery
-      )}&page=${page}&rows=${rows}`
-    );
+    const actualQuery = query.trim();
+    const cleanCif = actualQuery.replace(/^ro\s*/i, "").replace(/\D/g, "");
+    const isCifQuery = /^(ro)?\s*\d{3,}$/i.test(actualQuery);
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
+    let docs = [];
+    let totalPagesCount = 1;
+
+    // 1. Single call to list all 16000+ companies when query is empty
+    if (!actualQuery) {
+      const data = await fetchJsonSafely(
+        `https://api.peviitor.ro/v1/companies/?count=true&page=${page}&rows=${rows}`,
+      );
+
+      if (data && Array.isArray(data.companies)) {
+        docs = data.companies.map((c) => ({
+          id: c.id,
+          company: c.name,
+          status: "activ",
+        }));
+        const total = data.total || docs.length;
+        totalPagesCount = Math.ceil(total / rows) || 1;
+      }
+    }
+    // 2. Single call for CIF lookup
+    else if (isCifQuery && cleanCif) {
+      const res = await fetchJsonSafely(
+        `https://api.peviitor.ro/v1/firme/search/?id=${encodeURIComponent(
+          cleanCif,
+        )}`,
+      );
+      if (Array.isArray(res)) {
+        docs = res;
+        totalPagesCount = 1;
+      }
+    }
+    // 3. Single call for text search
+    else {
+      const data = await fetchJsonSafely(
+        `https://api.peviitor.ro/v1/firme/qsearch/?q=${encodeURIComponent(
+          actualQuery,
+        )}&page=${page}&rows=${rows}`,
+      );
+
+      if (data && data.docs && Array.isArray(data.docs)) {
+        docs = data.docs;
+        totalPagesCount = data.pagination?.total_pages || 1;
+      }
     }
 
-    const data = await response.json();
+    totalPages = totalPagesCount;
 
-    // Check if data.docs is an array
-    if (!data.docs || !Array.isArray(data.docs)) {
-      container.innerHTML =
-        "<em>Eroare la încărcare date: răspuns invalid de la server.</em>";
-      return;
-    }
-
-    // Update pagination info
-    totalPages = data.pagination?.total_pages || 1;
-
-    allCompanies = data.docs.sort((a, b) => {
+    allCompanies = docs.sort((a, b) => {
       const nameA =
-        Array.isArray(a.denumire) && a.denumire[0] ? a.denumire[0] : "";
+        a.company ||
+        a.name ||
+        (Array.isArray(a.denumire) && a.denumire[0] ? a.denumire[0] : "") ||
+        a.brand ||
+        "";
       const nameB =
-        Array.isArray(b.denumire) && b.denumire[0] ? b.denumire[0] : "";
+        b.company ||
+        b.name ||
+        (Array.isArray(b.denumire) && b.denumire[0] ? b.denumire[0] : "") ||
+        b.brand ||
+        "";
       return nameA.localeCompare(nameB);
     });
 
     renderCompanies(applyFilters(allCompanies));
     updatePaginationControls();
   } catch (error) {
-    console.error("Căutarea a eșuat:", error);
+    console.error("Search failed:", error);
     container.innerHTML =
       "<em>Eroare la încărcare date: nu s-a putut conecta la server.</em>";
   }
 }
 
-// Exclusive filters
+// Exclusive filter listeners
 checkboxNoWebsite.addEventListener("change", () => {
   if (checkboxNoWebsite.checked) checkboxHasWebsite.checked = false;
   renderCompanies(applyFilters(allCompanies));
@@ -84,36 +221,28 @@ checkboxHasWebsite.addEventListener("change", () => {
   updateActiveFiltersUI();
 });
 
-// Apply filters
+// Apply website filters
 function applyFilters(companies) {
-  // Website filtering disabled due to missing website field in API
-  if (checkboxNoWebsite.checked || checkboxHasWebsite.checked) {
-    console.warn(
-      "Website filtering is disabled due to missing website data in API."
-    );
-    // Optionally, show a UI message:
-    // container.innerHTML = "<em>Filtrarea după website este dezactivată temporar.</em>";
-    return companies;
-  }
-  return companies;
-
-  // If API adds a website field (e.g., website_url), uncomment and update:
-  /*
   if (checkboxNoWebsite.checked) {
-    return companies.filter(
-      (company) => !company.website_url || company.website_url.length === 0
-    );
+    return companies.filter((company) => {
+      const website = Array.isArray(company.website)
+        ? company.website[0]
+        : company.website;
+      return !website || String(website).trim() === "";
+    });
   }
   if (checkboxHasWebsite.checked) {
-    return companies.filter(
-      (company) => company.website_url && company.website_url.length > 0
-    );
+    return companies.filter((company) => {
+      const website = Array.isArray(company.website)
+        ? company.website[0]
+        : company.website;
+      return website && String(website).trim().length > 0;
+    });
   }
   return companies;
-  */
 }
 
-// Render companies
+// Render company list cards
 function renderCompanies(companies) {
   container.innerHTML = "";
 
@@ -123,35 +252,84 @@ function renderCompanies(companies) {
   }
 
   companies.forEach((company) => {
+    let anaf = {};
+    if (
+      company.anafData &&
+      Array.isArray(company.anafData) &&
+      company.anafData.length > 0
+    ) {
+      try {
+        anaf =
+          typeof company.anafData[0] === "string"
+            ? JSON.parse(company.anafData[0])
+            : company.anafData[0];
+      } catch (e) {}
+    }
+
+    const companyName =
+      company.company ||
+      company.name ||
+      (Array.isArray(company.denumire)
+        ? company.denumire[0]
+        : company.denumire) ||
+      company.brand ||
+      anaf.company ||
+      anaf.denumire ||
+      "Fără denumire";
+
+    const status = (
+      company.status ||
+      anaf.statusImpozit ||
+      (company.cod_stare
+        ? Array.isArray(company.cod_stare) && company.cod_stare.includes(1048)
+          ? "activ"
+          : "inactiv"
+        : "") ||
+      "activ"
+    ).toLowerCase();
+
+    const isActive =
+      status === "activ" ||
+      status === "in functiune" ||
+      (Array.isArray(company.cod_stare) && company.cod_stare.includes(1048));
+
+    const { localitate, judet } = extractLocation(company, anaf);
+
     const codStare = company.cod_stare || [];
-    const codStareFormatat = Array.isArray(codStare)
-      ? codStare.join(", ")
-      : codStare.toString();
+    const codStareFormatat =
+      Array.isArray(codStare) && codStare.length > 0
+        ? codStare.join(", ")
+        : status
+          ? status.charAt(0).toUpperCase() + status.slice(1)
+          : "Nespecificat";
+
+    const companyId =
+      company.id || company.cui || company.cif || anaf.cui || anaf.cif || "";
 
     container.innerHTML += `
       <div class="company-details f-col">
         <ul>
-          <li class="${codStare.includes(1048) ? "valid" : "invalid"}">
-            <h2>${company.denumire?.[0] || "Fără denumire"}</h2>
+          <li class="${isActive ? "valid" : "invalid"}">
+            <h2>${escapeHtml(companyName)}</h2>
           </li>
         </ul>
         <div class="f-row company-address">
           <div class="f-col company-col">
             <h4>Localitate:</h4>
-            <p>${company.localitate?.[0] || "Nespecificat"}</p>
+            <p>${escapeHtml(localitate)}</p>
           </div>
           <div class="f-col company-col">
             <h4>Județ:</h4>
-            <p>${company.judet?.[0] || "Nespecificat"}</p>
+            <p>${escapeHtml(judet)}</p>
           </div>
           <div class="f-col company-col">
-            <h4>Cod stare:</h4>
-            <p>${codStareFormatat || "Nespecificat"}</p>
+            <h4>Status:</h4>
+            <p>${escapeHtml(codStareFormatat)}</p>
           </div>
         </div>
         <a href="companie.html?id=${encodeURIComponent(
-          company.id || ""
-        )}" class="hover-anim company-link">
+          companyId,
+        )}&name=${encodeURIComponent(companyName)}" class="hover-anim company-link">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="32"
@@ -186,10 +364,10 @@ function renderCompanies(companies) {
   });
 }
 
-// Filter behavior
+// Initial filter header state
 filterHeader.style.display = "none";
 
-// Active filter update
+// Update active filters badge UI
 function updateActiveFiltersUI() {
   filterContainer.innerHTML = "";
 
@@ -226,10 +404,11 @@ function updateActiveFiltersUI() {
   filterHeader.style.display = filters.length > 0 ? "flex" : "none";
 }
 
-// Individual filter close button
+// Remove filter badge click listener
 filterContainer.addEventListener("click", (e) => {
-  if (e.target.tagName === "BUTTON") {
-    const id = e.target.getAttribute("data-id");
+  const btn = e.target.closest("button");
+  if (btn) {
+    const id = btn.getAttribute("data-id");
     if (id === "hasWebsite") checkboxHasWebsite.checked = false;
     if (id === "noWebsite") checkboxNoWebsite.checked = false;
     renderCompanies(applyFilters(allCompanies));
@@ -237,7 +416,7 @@ filterContainer.addEventListener("click", (e) => {
   }
 });
 
-// Remove all filters
+// Clear all active filters
 clearFiltersBtn.addEventListener("click", () => {
   checkboxHasWebsite.checked = false;
   checkboxNoWebsite.checked = false;
@@ -245,9 +424,8 @@ clearFiltersBtn.addEventListener("click", () => {
   renderCompanies(applyFilters(allCompanies));
 });
 
-// Pagination controls
+// Update pagination controls UI
 function updatePaginationControls() {
-  // Remove existing pagination controls
   let paginationContainer = document.getElementById("paginationContainer");
   if (!paginationContainer) {
     paginationContainer = document.createElement("div");
@@ -267,7 +445,6 @@ function updatePaginationControls() {
     </div>
   `;
 
-  // Add event listeners for pagination buttons
   const prevButton = document.getElementById("prevPage");
   const nextButton = document.getElementById("nextPage");
 
