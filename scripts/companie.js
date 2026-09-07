@@ -1,6 +1,14 @@
+function decodeEntities(str) {
+  if (!str) return "";
+  const txt = document.createElement("textarea");
+  txt.innerHTML = str;
+  return txt.value;
+}
+
 function escapeHtml(str) {
   if (str === null || str === undefined) return "";
-  return String(str)
+  const decoded = decodeEntities(String(str));
+  return decoded
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

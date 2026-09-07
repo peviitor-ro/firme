@@ -12,9 +12,17 @@ let currentPage = 1;
 let rowsPerPage = 20;
 let totalPages = 1;
 
+function decodeEntities(str) {
+  if (!str) return "";
+  const txt = document.createElement("textarea");
+  txt.innerHTML = str;
+  return txt.value;
+}
+
 function escapeHtml(str) {
   if (str === null || str === undefined) return "";
-  return String(str)
+  const decoded = decodeEntities(String(str));
+  return decoded
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -49,7 +57,7 @@ async function fetchJsonSafely(url) {
   throw new Error("Invalid server response.");
 }
 
-// Extract locality and county from company and ANAF data
+// Extract location
 function extractLocation(company, anaf = {}) {
   let localitate =
     anaf.localitate ||
@@ -247,9 +255,11 @@ function renderCompanies(companies) {
   container.innerHTML = "";
 
   if (companies.length === 0) {
-    container.innerHTML = "<em>Nicio firmă găsită.</em>";
+    container.innerHTML = `<div class="no-results-msg"><em>Nicio firmă găsită.</em></div>`;
     return;
   }
+
+  const isSearchActive = Boolean(input.value.trim());
 
   companies.forEach((company) => {
     let anaf = {};
@@ -277,88 +287,104 @@ function renderCompanies(companies) {
       anaf.denumire ||
       "Fără denumire";
 
-    const status = (
-      company.status ||
-      anaf.statusImpozit ||
-      (company.cod_stare
-        ? Array.isArray(company.cod_stare) && company.cod_stare.includes(1048)
-          ? "activ"
-          : "inactiv"
-        : "") ||
-      "activ"
-    ).toLowerCase();
-
-    const isActive =
-      status === "activ" ||
-      status === "in functiune" ||
-      (Array.isArray(company.cod_stare) && company.cod_stare.includes(1048));
-
-    const { localitate, judet } = extractLocation(company, anaf);
-
-    const codStare = company.cod_stare || [];
-    const codStareFormatat =
-      Array.isArray(codStare) && codStare.length > 0
-        ? codStare.join(", ")
-        : status
-          ? status.charAt(0).toUpperCase() + status.slice(1)
-          : "Nespecificat";
-
     const companyId =
       company.id || company.cui || company.cif || anaf.cui || anaf.cif || "";
 
+    // If searching, calculate location, status and metadata
+    let detailsHtml = "";
+    let statusBadgeHtml = "";
+
+    if (isSearchActive) {
+      const status = (
+        company.status ||
+        anaf.statusImpozit ||
+        (company.cod_stare
+          ? Array.isArray(company.cod_stare) && company.cod_stare.includes(1048)
+            ? "activ"
+            : "inactiv"
+          : "") ||
+        "activ"
+      ).toLowerCase();
+
+      const isActive =
+        status === "activ" ||
+        status === "in functiune" ||
+        (Array.isArray(company.cod_stare) && company.cod_stare.includes(1048));
+
+      statusBadgeHtml = `
+        <span class="status-badge ${isActive ? "status-active" : "status-inactive"}">
+          <span class="status-dot"></span>
+          ${escapeHtml(isActive ? "Activ" : "Inactiv")}
+        </span>
+      `;
+
+      const { localitate, judet } = extractLocation(company, anaf);
+      const hasLocation = localitate && localitate !== "Nespecificat";
+      const hasJudet = judet && judet !== "Nespecificat";
+
+      const infoItems = [];
+
+      if (hasLocation) {
+        infoItems.push(`
+          <div class="company-info-item">
+            <span class="info-label">Localitate:</span>
+            <span class="info-value">${escapeHtml(localitate)}</span>
+          </div>
+        `);
+      }
+
+      if (hasJudet) {
+        infoItems.push(`
+          <div class="company-info-item">
+            <span class="info-label">Județ:</span>
+            <span class="info-value">${escapeHtml(judet)}</span>
+          </div>
+        `);
+      }
+
+      if (companyId) {
+        infoItems.push(`
+          <div class="company-info-item">
+            <span class="info-label">CUI / CIF:</span>
+            <span class="info-value">${escapeHtml(companyId)}</span>
+          </div>
+        `);
+      }
+
+      if (infoItems.length > 0) {
+        detailsHtml = `<div class="company-info-grid">${infoItems.join("")}</div>`;
+      }
+    }
+
     container.innerHTML += `
-      <div class="company-details f-col">
-        <ul>
-          <li class="${isActive ? "valid" : "invalid"}">
-            <h2>${escapeHtml(companyName)}</h2>
-          </li>
-        </ul>
-        <div class="f-row company-address">
-          <div class="f-col company-col">
-            <h4>Localitate:</h4>
-            <p>${escapeHtml(localitate)}</p>
+      <div class="company-card">
+        <div class="company-card-top">
+          <div class="company-card-header">
+            <h2 class="company-card-title">${escapeHtml(companyName)}</h2>
+            ${statusBadgeHtml}
           </div>
-          <div class="f-col company-col">
-            <h4>Județ:</h4>
-            <p>${escapeHtml(judet)}</p>
-          </div>
-          <div class="f-col company-col">
-            <h4>Status:</h4>
-            <p>${escapeHtml(codStareFormatat)}</p>
-          </div>
+          ${detailsHtml}
         </div>
-        <a href="companie.html?id=${encodeURIComponent(
-          companyId,
-        )}&name=${encodeURIComponent(companyName)}" class="hover-anim company-link">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="32"
-            height="32"
-            viewBox="0 0 32 32"
-            class="search-icon"
-            focusable="false"
-            role="img"
-            aria-hidden="true"
-            style="
-              position: absolute;
-              top: 50%;
-              left: 9px;
-              transform: translateY(-50%);
-            "
-          >
-            <path
-              class="euiIcon__fillSecondary"
-              d="M11.63 8h7.38v2h-7.38z"
-            ></path>
-            <path d="M7 8h3.19v2H7z"></path>
-            <path class="euiIcon__fillSecondary" d="M7 16h7.38v2H7z"></path>
-            <path d="M15.81 16H19v2h-3.19zM7 12h9v2H7z"></path>
-            <path
-              d="M13 0C5.82 0 0 5.82 0 13s5.82 13 13 13 13-5.82 13-13A13 13 0 0013 0zm0 24C6.925 24 2 19.075 2 13S6.925 2 13 2s11 4.925 11 11-4.925 11-11 11zM22.581 23.993l1.414-1.414 7.708 7.708-1.414 1.414z"
-            ></path>
-          </svg>
-          Vezi toate informațiile
-        </a>
+        <div class="company-card-bottom">
+          <a href="companie.html?id=${encodeURIComponent(
+            companyId,
+          )}&name=${encodeURIComponent(companyName)}" class="company-link">
+            <span>Vezi toate informațiile</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </a>
+        </div>
       </div>
     `;
   });
@@ -434,14 +460,20 @@ function updatePaginationControls() {
   }
 
   paginationContainer.innerHTML = `
-    <div style="margin-top: 20px; text-align: center;">
-      <button id="prevPage" ${
+    <div class="pagination-wrapper">
+      <button id="prevPage" class="pagination-btn" ${
         currentPage === 1 ? "disabled" : ""
-      }>Previous</button>
-      <span>Page ${currentPage} of ${totalPages}</span>
-      <button id="nextPage" ${
+      }>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        Anterior
+      </button>
+      <span class="pagination-info">Pagina <strong>${currentPage}</strong> din <strong>${totalPages}</strong></span>
+      <button id="nextPage" class="pagination-btn" ${
         currentPage === totalPages ? "disabled" : ""
-      }>Next</button>
+      }>
+        Următor
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </button>
     </div>
   `;
 
@@ -466,3 +498,4 @@ function updatePaginationControls() {
     });
   }
 }
+
