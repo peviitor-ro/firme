@@ -265,12 +265,11 @@ function updateAuthUI() {
       role.className = "user-role";
       role.textContent = "Admin";
 
-      const emailSpan = document.createElement("span");
-      emailSpan.className = "user-email";
-      emailSpan.title = user.email || "";
-      emailSpan.textContent = user.email || "";
+      const statusSpan = document.createElement("span");
+      statusSpan.className = "user-status";
+      statusSpan.textContent = "Conectat";
 
-      info.append(role, emailSpan);
+      info.append(role, statusSpan);
       header.append(avatar, info);
 
       const actions = document.createElement("div");

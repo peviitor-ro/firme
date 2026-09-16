@@ -257,7 +257,8 @@
   text-transform: uppercase;
 }
 
-.sidebar-user-header .user-email {
+.sidebar-user-header .user-email,
+.sidebar-user-header .user-status {
   font-size: 0.8rem;
   font-weight: 600;
   color: #14532d;
