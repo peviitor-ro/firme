@@ -12,24 +12,6 @@ let currentPage = 1;
 let rowsPerPage = 20;
 let totalPages = 1;
 
-function decodeEntities(str) {
-  if (!str) return "";
-  const txt = document.createElement("textarea");
-  txt.innerHTML = str;
-  return txt.value;
-}
-
-function escapeHtml(str) {
-  if (str === null || str === undefined) return "";
-  const decoded = decodeEntities(String(str));
-  return decoded
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
 // Safely extract and parse JSON payload (object or array) from response
 async function fetchJsonSafely(url) {
   const response = await fetch(url);
@@ -150,7 +132,7 @@ async function searchCompany(query = "", page = 1, rows = 20) {
     // 1. Single call to list all 16000+ companies when query is empty
     if (!actualQuery) {
       const data = await fetchJsonSafely(
-        `https://api.peviitor.ro/v1/companies/?count=true&page=${page}&rows=${rows}`,
+        `https://api.peviitor.ro/v1/companies/?count=true&page=${page}&rows=${rows}`
       );
 
       if (data && Array.isArray(data.companies)) {
@@ -167,8 +149,8 @@ async function searchCompany(query = "", page = 1, rows = 20) {
     else if (isCifQuery && cleanCif) {
       const res = await fetchJsonSafely(
         `https://api.peviitor.ro/v1/firme/search/?id=${encodeURIComponent(
-          cleanCif,
-        )}`,
+          cleanCif
+        )}`
       );
       if (Array.isArray(res)) {
         docs = res;
@@ -179,8 +161,8 @@ async function searchCompany(query = "", page = 1, rows = 20) {
     else {
       const data = await fetchJsonSafely(
         `https://api.peviitor.ro/v1/firme/qsearch/?q=${encodeURIComponent(
-          actualQuery,
-        )}&page=${page}&rows=${rows}`,
+          actualQuery
+        )}&page=${page}&rows=${rows}`
       );
 
       if (data && data.docs && Array.isArray(data.docs)) {
@@ -211,8 +193,12 @@ async function searchCompany(query = "", page = 1, rows = 20) {
     updatePaginationControls();
   } catch (error) {
     console.error("Search failed:", error);
-    container.innerHTML =
-      "<em>Eroare la încărcare date: nu s-a putut conecta la server.</em>";
+    const errDiv = document.createElement("div");
+    errDiv.className = "no-results-msg";
+    const em = document.createElement("em");
+    em.textContent = "Eroare la încărcare date: nu s-a putut conecta la server.";
+    errDiv.appendChild(em);
+    container.replaceChildren(errDiv);
   }
 }
 
@@ -252,10 +238,15 @@ function applyFilters(companies) {
 
 // Render company list cards
 function renderCompanies(companies) {
-  container.innerHTML = "";
+  container.replaceChildren();
 
   if (companies.length === 0) {
-    container.innerHTML = `<div class="no-results-msg"><em>Nicio firmă găsită.</em></div>`;
+    const noRes = document.createElement("div");
+    noRes.className = "no-results-msg";
+    const em = document.createElement("em");
+    em.textContent = "Nicio firmă găsită.";
+    noRes.appendChild(em);
+    container.appendChild(noRes);
     return;
   }
 
@@ -290,9 +281,19 @@ function renderCompanies(companies) {
     const companyId =
       company.id || company.cui || company.cif || anaf.cui || anaf.cif || "";
 
-    // If searching, calculate location, status and metadata
-    let detailsHtml = "";
-    let statusBadgeHtml = "";
+    const card = document.createElement("div");
+    card.className = "company-card";
+
+    const cardTop = document.createElement("div");
+    cardTop.className = "company-card-top";
+
+    const cardHeader = document.createElement("div");
+    cardHeader.className = "company-card-header";
+
+    const titleH2 = document.createElement("h2");
+    titleH2.className = "company-card-title";
+    titleH2.textContent = companyName;
+    cardHeader.appendChild(titleH2);
 
     if (isSearchActive) {
       const status = (
@@ -311,82 +312,91 @@ function renderCompanies(companies) {
         status === "in functiune" ||
         (Array.isArray(company.cod_stare) && company.cod_stare.includes(1048));
 
-      statusBadgeHtml = `
-        <span class="status-badge ${isActive ? "status-active" : "status-inactive"}">
-          <span class="status-dot"></span>
-          ${escapeHtml(isActive ? "Activ" : "Inactiv")}
-        </span>
-      `;
+      const statusBadge = document.createElement("span");
+      statusBadge.className = `status-badge ${
+        isActive ? "status-active" : "status-inactive"
+      }`;
+
+      const dot = document.createElement("span");
+      dot.className = "status-dot";
+
+      statusBadge.append(
+        dot,
+        document.createTextNode(` ${isActive ? "Activ" : "Inactiv"}`)
+      );
+      cardHeader.appendChild(statusBadge);
 
       const { localitate, judet } = extractLocation(company, anaf);
       const hasLocation = localitate && localitate !== "Nespecificat";
       const hasJudet = judet && judet !== "Nespecificat";
 
-      const infoItems = [];
+      const infoGrid = document.createElement("div");
+      infoGrid.className = "company-info-grid";
 
       if (hasLocation) {
-        infoItems.push(`
-          <div class="company-info-item">
-            <span class="info-label">Localitate:</span>
-            <span class="info-value">${escapeHtml(localitate)}</span>
-          </div>
-        `);
+        const item = document.createElement("div");
+        item.className = "company-info-item";
+        const label = document.createElement("span");
+        label.className = "info-label";
+        label.textContent = "Localitate:";
+        const val = document.createElement("span");
+        val.className = "info-value";
+        val.textContent = localitate;
+        item.append(label, val);
+        infoGrid.appendChild(item);
       }
 
       if (hasJudet) {
-        infoItems.push(`
-          <div class="company-info-item">
-            <span class="info-label">Județ:</span>
-            <span class="info-value">${escapeHtml(judet)}</span>
-          </div>
-        `);
+        const item = document.createElement("div");
+        item.className = "company-info-item";
+        const label = document.createElement("span");
+        label.className = "info-label";
+        label.textContent = "Județ:";
+        const val = document.createElement("span");
+        val.className = "info-value";
+        val.textContent = judet;
+        item.append(label, val);
+        infoGrid.appendChild(item);
       }
 
       if (companyId) {
-        infoItems.push(`
-          <div class="company-info-item">
-            <span class="info-label">CUI / CIF:</span>
-            <span class="info-value">${escapeHtml(companyId)}</span>
-          </div>
-        `);
+        const item = document.createElement("div");
+        item.className = "company-info-item";
+        const label = document.createElement("span");
+        label.className = "info-label";
+        label.textContent = "CUI / CIF:";
+        const val = document.createElement("span");
+        val.className = "info-value";
+        val.textContent = String(companyId);
+        item.append(label, val);
+        infoGrid.appendChild(item);
       }
 
-      if (infoItems.length > 0) {
-        detailsHtml = `<div class="company-info-grid">${infoItems.join("")}</div>`;
-      }
+      cardTop.append(cardHeader, infoGrid);
+    } else {
+      cardTop.appendChild(cardHeader);
     }
 
-    container.innerHTML += `
-      <div class="company-card">
-        <div class="company-card-top">
-          <div class="company-card-header">
-            <h2 class="company-card-title">${escapeHtml(companyName)}</h2>
-            ${statusBadgeHtml}
-          </div>
-          ${detailsHtml}
-        </div>
-        <div class="company-card-bottom">
-          <a href="companie.html?id=${encodeURIComponent(
-            companyId,
-          )}&name=${encodeURIComponent(companyName)}" class="company-link">
-            <span>Vezi toate informațiile</span>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-          </a>
-        </div>
-      </div>
-    `;
+    const cardBottom = document.createElement("div");
+    cardBottom.className = "company-card-bottom";
+
+    const link = document.createElement("a");
+    link.className = "company-link";
+    link.href = `companie.html?id=${encodeURIComponent(
+      companyId
+    )}&name=${encodeURIComponent(companyName)}`;
+
+    const linkText = document.createElement("span");
+    linkText.textContent = "Vezi toate informațiile";
+
+    const arrowIcon = document.createElement("i");
+    arrowIcon.className = "ri-arrow-right-line";
+
+    link.append(linkText, arrowIcon);
+    cardBottom.appendChild(link);
+
+    card.append(cardTop, cardBottom);
+    container.appendChild(card);
   });
 }
 
@@ -395,9 +405,9 @@ filterHeader.style.display = "none";
 
 // Update active filters badge UI
 function updateActiveFiltersUI() {
-  filterContainer.innerHTML = "";
+  filterContainer.replaceChildren();
 
-  let filters = [];
+  const filters = [];
 
   if (checkboxHasWebsite.checked) {
     filters.push({
@@ -416,14 +426,19 @@ function updateActiveFiltersUI() {
   filters.forEach((filter) => {
     const span = document.createElement("span");
     span.classList.add("active-filter");
-    span.innerHTML = `
-      ${filter.label}
-      <button data-id="${filter.id}">
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M18.3 5.71a1 1 0 0 0-1.42 0L12 10.59 7.12 5.7a1 1 0 0 0-1.41 1.42L10.59 12l-4.88 4.88a1 1 0 1 0 1.41 1.41L12 13.41l4.88 4.88a1 1 0 0 0 1.42-1.41L13.41 12l4.88-4.88a1 1 0 0 0 0-1.41z"/>
-        </svg>
-      </button>
-    `;
+
+    const textSpan = document.createElement("span");
+    textSpan.textContent = filter.label;
+
+    const btn = document.createElement("button");
+    btn.setAttribute("data-id", filter.id);
+    btn.title = "Elimină filtrul";
+
+    const icon = document.createElement("i");
+    icon.className = "ri-close-line";
+    btn.appendChild(icon);
+
+    span.append(textSpan, btn);
     filterContainer.appendChild(span);
   });
 
@@ -459,43 +474,47 @@ function updatePaginationControls() {
     container.insertAdjacentElement("afterend", paginationContainer);
   }
 
-  paginationContainer.innerHTML = `
-    <div class="pagination-wrapper">
-      <button id="prevPage" class="pagination-btn" ${
-        currentPage === 1 ? "disabled" : ""
-      }>
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-        Anterior
-      </button>
-      <span class="pagination-info">Pagina <strong>${currentPage}</strong> din <strong>${totalPages}</strong></span>
-      <button id="nextPage" class="pagination-btn" ${
-        currentPage === totalPages ? "disabled" : ""
-      }>
-        Următor
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-      </button>
-    </div>
-  `;
+  const wrapper = document.createElement("div");
+  wrapper.className = "pagination-wrapper";
 
-  const prevButton = document.getElementById("prevPage");
-  const nextButton = document.getElementById("nextPage");
+  const prevBtn = document.createElement("button");
+  prevBtn.id = "prevPage";
+  prevBtn.className = "pagination-btn";
+  if (currentPage === 1) prevBtn.disabled = true;
+  const prevIcon = document.createElement("i");
+  prevIcon.className = "ri-arrow-left-s-line";
+  prevBtn.append(prevIcon, document.createTextNode(" Anterior"));
 
-  if (prevButton) {
-    prevButton.addEventListener("click", async () => {
-      if (currentPage > 1) {
-        currentPage--;
-        await searchCompany(input.value.trim(), currentPage, rowsPerPage);
-      }
-    });
-  }
+  const infoSpan = document.createElement("span");
+  infoSpan.className = "pagination-info";
+  const strongCur = document.createElement("strong");
+  strongCur.textContent = String(currentPage);
+  const strongTot = document.createElement("strong");
+  strongTot.textContent = String(totalPages);
+  infoSpan.append("Pagina ", strongCur, " din ", strongTot);
 
-  if (nextButton) {
-    nextButton.addEventListener("click", async () => {
-      if (currentPage < totalPages) {
-        currentPage++;
-        await searchCompany(input.value.trim(), currentPage, rowsPerPage);
-      }
-    });
-  }
+  const nextBtn = document.createElement("button");
+  nextBtn.id = "nextPage";
+  nextBtn.className = "pagination-btn";
+  if (currentPage === totalPages) nextBtn.disabled = true;
+  const nextIcon = document.createElement("i");
+  nextIcon.className = "ri-arrow-right-s-line";
+  nextBtn.append(document.createTextNode("Următor "), nextIcon);
+
+  prevBtn.addEventListener("click", async () => {
+    if (currentPage > 1) {
+      currentPage--;
+      await searchCompany(input.value.trim(), currentPage, rowsPerPage);
+    }
+  });
+
+  nextBtn.addEventListener("click", async () => {
+    if (currentPage < totalPages) {
+      currentPage++;
+      await searchCompany(input.value.trim(), currentPage, rowsPerPage);
+    }
+  });
+
+  wrapper.append(prevBtn, infoSpan, nextBtn);
+  paginationContainer.replaceChildren(wrapper);
 }
-

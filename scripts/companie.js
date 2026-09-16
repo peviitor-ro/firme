@@ -1,21 +1,3 @@
-function decodeEntities(str) {
-  if (!str) return "";
-  const txt = document.createElement("textarea");
-  txt.innerHTML = str;
-  return txt.value;
-}
-
-function escapeHtml(str) {
-  if (str === null || str === undefined) return "";
-  const decoded = decodeEntities(String(str));
-  return decoded
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
 // Safely extract and parse JSON payload (object or array) from response
 async function fetchJsonSafely(url) {
   const response = await fetch(url);
@@ -88,6 +70,148 @@ function extractLocation(company, anaf = {}) {
     localitate: localitate || "--",
     judet: judet || "--",
   };
+}
+
+// DOM Helper builders for company details view
+function createCopyButton(textToCopy, title = "Copiază") {
+  const btn = document.createElement("button");
+  btn.className = "copy-btn";
+  btn.title = title;
+  btn.setAttribute("data-copy", textToCopy);
+
+  const copyIcon = document.createElement("i");
+  copyIcon.className = "ri-file-copy-line";
+  btn.appendChild(copyIcon);
+
+  btn.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+
+      const checkIcon = document.createElement("i");
+      checkIcon.className = "ri-check-line";
+      checkIcon.style.color = "#10b981";
+      btn.replaceChildren(checkIcon);
+      btn.disabled = true;
+
+      setTimeout(() => {
+        const revertIcon = document.createElement("i");
+        revertIcon.className = "ri-file-copy-line";
+        btn.replaceChildren(revertIcon);
+        btn.disabled = false;
+      }, 1500);
+    } catch (err) {
+      console.error("Clipboard copy failed:", err);
+    }
+  });
+  return btn;
+}
+
+function createCodeField(titleText, valueText, valueId = null) {
+  const field = document.createElement("div");
+  field.className = "code-field";
+
+  const h4 = document.createElement("h4");
+  h4.textContent = titleText;
+  field.appendChild(h4);
+
+  const p = document.createElement("p");
+  if (valueId) p.id = valueId;
+  p.textContent = valueText || "--";
+  field.appendChild(p);
+
+  return field;
+}
+
+function createCodeFieldWithCopy(titleText, valueText, spanId, copyTitle) {
+  const field = document.createElement("div");
+  field.className = "code-field";
+
+  const h4 = document.createElement("h4");
+  h4.textContent = titleText;
+  field.appendChild(h4);
+
+  const p = document.createElement("p");
+  if (!valueText || valueText === "--") {
+    p.textContent = "--";
+    if (spanId) p.id = spanId;
+  } else {
+    const span = document.createElement("span");
+    if (spanId) span.id = spanId;
+    span.textContent = valueText;
+    p.appendChild(span);
+
+    const btn = createCopyButton(valueText, copyTitle);
+    p.appendChild(btn);
+  }
+
+  field.appendChild(p);
+  return field;
+}
+
+function createLinkFieldWithCopy(titleText, displayText, href, linkId, copyTitle) {
+  const field = document.createElement("div");
+  field.className = "code-field";
+
+  const h4 = document.createElement("h4");
+  h4.textContent = titleText;
+  field.appendChild(h4);
+
+  const p = document.createElement("p");
+  if (!displayText || displayText === "--" || !href) {
+    p.textContent = "--";
+    if (linkId) p.id = linkId;
+  } else {
+    const a = document.createElement("a");
+    if (linkId) a.id = linkId;
+    a.href = href;
+    a.textContent = displayText;
+    if (!href.startsWith("mailto:") && !href.startsWith("tel:")) {
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+    }
+    p.appendChild(a);
+
+    const btn = createCopyButton(displayText, copyTitle);
+    p.appendChild(btn);
+  }
+
+  field.appendChild(p);
+  return field;
+}
+
+function createWebsiteList(titleText, sites = [], copyTitle = "Copiază link") {
+  const wrapper = document.createElement("div");
+  wrapper.className = "company-website";
+
+  const h4 = document.createElement("h4");
+  h4.textContent = titleText;
+  wrapper.appendChild(h4);
+
+  if (!sites || sites.length === 0) {
+    const p = document.createElement("p");
+    p.textContent = "--";
+    wrapper.appendChild(p);
+  } else {
+    sites.forEach((site) => {
+      const entry = document.createElement("div");
+      entry.className = "website-entry";
+
+      const a = document.createElement("a");
+      a.href = site.startsWith("http") ? site : `https://${site}`;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.className = "company-website-link";
+      a.textContent = site;
+      entry.appendChild(a);
+
+      const btn = createCopyButton(site, copyTitle);
+      entry.appendChild(btn);
+
+      wrapper.appendChild(entry);
+    });
+  }
+
+  return wrapper;
 }
 
 // Load and render company details
@@ -262,230 +386,157 @@ async function loadCompanyDetails() {
       career = [company.career];
     }
 
-    const htmlContent = `
-       <div class="company-heading f-col separator">
-         <h2 id="company-name">${escapeHtml(companyName)}</h2>
-         <a href="index.html" id="backButton">Înapoi la rezultate</a>
-       </div>
+    // Build company profile DOM elements using createElement and append
+    const cardContainer = document.getElementById("company-card");
 
-       <div class="company-status f-row separator">
-         <p>Stare firmă: <span class="${
-           isActive ? "green" : "red"
-         }">${isActive ? "Funcționare / Activ" : "Inactivă"}</span></p>
-       </div>
+    // 1. Company Heading & Status
+    const heading = document.createElement("div");
+    heading.className = "company-heading f-row separator";
 
-       <div class="company-details f-col">
-         <div class="company-details-heading">
-           <h3>Informații generale</h3>
-           <p id="company-summary">
-             Codul fiscal al firmei <span id="company-name-inline">${escapeHtml(
-               companyName
-             )}</span> este <span id="company-cui-inline">${escapeHtml(
-      String(cui)
-    )}</span>.
-           </p>
-         </div>
+    const h2 = document.createElement("h2");
+    h2.id = "company-name";
+    h2.textContent = companyName;
 
-         <div class="company-details-data separator">
-           <div class="code-field">
-             <h4>CUI / CIF:</h4>
-             <p>
-               <span id="company-cui">${escapeHtml(String(cui))}</span>
-               <button class="copy-btn" data-copy="${escapeHtml(
-                 String(cui)
-               )}" title="Copiază CUI">📋</button>
-             </p>
-           </div>
+    const statusDiv = document.createElement("div");
+    statusDiv.className = "company-status";
 
-           <div class="code-field">
-             <h4>Cod Stare / Status:</h4>
-             <p id="company-cod-stare">${escapeHtml(String(codStareFormat))}</p>
-           </div>
+    const statusP = document.createElement("p");
+    statusP.textContent = "Stare firmă: ";
 
-           <div class="code-field">
-             <h4>Reg. Comerțului:</h4>
-             <p>
-               <span id="company-reg">${escapeHtml(String(regComert))}</span>
-               <button class="copy-btn" data-copy="${escapeHtml(
-                 String(regComert)
-               )}" title="Copiază cod">📋</button>
-             </p>
-           </div>
+    const statusSpan = document.createElement("span");
+    statusSpan.className = isActive ? "green" : "red";
+    statusSpan.textContent = isActive ? "Funcționare / Activ" : "Inactivă";
 
-           <div class="code-field">
-             <h4>EUID:</h4>
-             <p>
-               <span id="company-euid">${escapeHtml(String(euid))}</span>
-               <button class="copy-btn" data-copy="${escapeHtml(
-                 String(euid)
-               )}" title="Copiază EUID">📋</button>
-             </p>
-           </div>
+    statusP.appendChild(statusSpan);
+    statusDiv.appendChild(statusP);
+    heading.append(h2, statusDiv);
 
-           <div class="code-field">
-             <h4>Brand:</h4>
-             <p id="company-brand">${escapeHtml(String(brands))}</p>
-           </div>
-         </div>
-         
-         <div class="company-details-heading"> 
-           <h3>Date de contact & Adresă</h3>
-           <p id="company-address">${escapeHtml(String(adresa))}</p>
-         </div>
-         <div class="company-details-data separator"> 
-           <div class="code-field">
-             <h4>Județ:</h4>
-             <p id="company-judet">${escapeHtml(String(judet))}</p>
-           </div>
+    // 2. Company Details Container
+    const details = document.createElement("div");
+    details.className = "company-details f-col";
 
-           <div class="code-field">
-             <h4>Localitate:</h4>
-             <p id="company-localitate">${escapeHtml(String(localitate))}</p>
-           </div>
+    // Section 1: Informații generale
+    const generalHeading = document.createElement("div");
+    generalHeading.className = "company-details-heading";
 
-           <div class="code-field">
-              <h4>Email:</h4>
-              ${
-                email === "--"
-                  ? `<p id="company-email">--</p>`
-                  : `
-                    <p>
-                      <a href="mailto:${escapeHtml(email)}" id="company-email">${escapeHtml(email)}</a>
-                      <button class="copy-btn" data-copy="${escapeHtml(
-                        email
-                      )}" title="Copiază email">📋</button>
-                    </p>
-                    `
-              }
-            </div>
+    const generalH3 = document.createElement("h3");
+    generalH3.textContent = "Informații generale";
 
-            <div class="code-field">
-             <h4>Telefon:</h4>
-             <p id="company-phone">${escapeHtml(String(phone))}</p>
-           </div>
-           
-           <div class="company-website">
-             <h4>Website:</h4>
-             ${
-               website.length > 0
-                 ? website
-                     .map(
-                       (site) => `
-                         <div class="website-entry">
-                           <a href="${escapeHtml(
-                             site
-                           )}" target="_blank" rel="noopener noreferrer" class="company-website-link">${escapeHtml(
-                         site
-                       )}</a>
-                           <button class="copy-btn" data-copy="${escapeHtml(
-                             site
-                           )}" title="Copiază link">📋</button>
-                         </div>
-                       `
-                     )
-                     .join("")
-                 : "<p>--</p>"
-             }
-           </div>
+    const summaryP = document.createElement("p");
+    summaryP.id = "company-summary";
+    summaryP.append("Codul fiscal al firmei ");
 
-           ${
-             career.length > 0
-               ? `
-               <div class="company-website">
-                 <h4>Cariere / Jobs:</h4>
-                 ${career
-                   .map(
-                     (site) => `
-                       <div class="website-entry">
-                         <a href="${escapeHtml(
-                           site
-                         )}" target="_blank" rel="noopener noreferrer" class="company-website-link">${escapeHtml(
-                       site
-                     )}</a>
-                         <button class="copy-btn" data-copy="${escapeHtml(
-                           site
-                         )}" title="Copiază link cariere">📋</button>
-                       </div>
-                     `
-                   )
-                   .join("")}
-               </div>
-               `
-               : ""
-           }
-         </div>
+    const nameSpan = document.createElement("span");
+    nameSpan.id = "company-name-inline";
+    nameSpan.textContent = companyName;
+    summaryP.appendChild(nameSpan);
 
-         <div class="company-details-heading"> 
-           <h3>Alte informații</h3>
-         </div>
-         <div class="company-details-data"> 
-           <div class="code-field">
-             <h4>Link scraper:</h4>
-              ${
-                scraper === "--"
-                  ? `<p id="company-scraper">--</p>`
-                  : `
-                    <p>
-                      <a href="${
-                        scraper.startsWith("http")
-                          ? escapeHtml(scraper)
-                          : `https://github.com/peviitor-scrapers/${escapeHtml(
-                              scraper
-                            )}`
-                      }" target="_blank" rel="noopener noreferrer" id="company-scraper">${escapeHtml(
-                      scraper
-                    )}</a>
-                      <button class="copy-btn" data-copy="${escapeHtml(
-                        scraper
-                      )}" title="Copiază scraper">📋</button>
-                    </p>
-                    `
-              }
-           </div>
-           <div class="code-field">
-             <h4>Link logo:</h4>
-              ${
-                logo === "--"
-                  ? `<p id="company-logo">--</p>`
-                  : `
-                    <p>
-                      <a href="${escapeHtml(
-                        logo
-                      )}" target="_blank" rel="noopener noreferrer" id="company-logo">${escapeHtml(
-                      logo
-                    )}</a>
-                      <button class="copy-btn" data-copy="${escapeHtml(
-                        logo
-                      )}" title="Copiază logo">📋</button>
-                    </p>
-                    `
-              }
-           </div>
-         </div>
-       </div>
-    `;
+    summaryP.append(" este ");
 
-    document.getElementById("company-card").innerHTML = htmlContent;
+    const cuiSpan = document.createElement("span");
+    cuiSpan.id = "company-cui-inline";
+    cuiSpan.textContent = String(cui);
+    summaryP.appendChild(cuiSpan);
 
-    // Attach copy to clipboard event listeners
-    document.querySelectorAll(".copy-btn").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const text = btn.getAttribute("data-copy");
-        try {
-          await navigator.clipboard.writeText(text);
+    summaryP.append(".");
+    generalHeading.append(generalH3, summaryP);
 
-          const original = btn.innerHTML;
-          btn.innerHTML = "✅";
-          btn.disabled = true;
-          setTimeout(() => {
-            btn.innerHTML = original;
-            btn.disabled = false;
-          }, 1500);
-        } catch (err) {
-          console.error("Clipboard copy failed:", err);
-        }
-      });
-    });
+    const generalData = document.createElement("div");
+    generalData.className = "company-details-data separator";
+    generalData.append(
+      createCodeFieldWithCopy("CUI / CIF:", String(cui), "company-cui", "Copiază CUI"),
+      createCodeField("Cod Stare / Status:", String(codStareFormat), "company-cod-stare"),
+      createCodeFieldWithCopy("Reg. Comerțului:", String(regComert), "company-reg", "Copiază cod"),
+      createCodeFieldWithCopy("EUID:", String(euid), "company-euid", "Copiază EUID"),
+      createCodeField("Brand:", String(brands), "company-brand")
+    );
+
+    // Section 2: Date de contact & Adresă
+    const contactHeading = document.createElement("div");
+    contactHeading.className = "company-details-heading";
+
+    const contactH3 = document.createElement("h3");
+    contactH3.textContent = "Date de contact & Adresă";
+
+    const addressP = document.createElement("p");
+    addressP.id = "company-address";
+    addressP.textContent = String(adresa);
+    contactHeading.append(contactH3, addressP);
+
+    const contactData = document.createElement("div");
+    contactData.className = "company-details-data separator";
+    contactData.append(
+      createCodeField("Județ:", String(judet), "company-judet"),
+      createCodeField("Localitate:", String(localitate), "company-localitate"),
+      createLinkFieldWithCopy(
+        "Email:",
+        email,
+        email !== "--" ? `mailto:${email}` : null,
+        "company-email",
+        "Copiază email"
+      ),
+      createCodeField("Telefon:", String(phone), "company-phone"),
+      createWebsiteList("Website:", website, "Copiază link")
+    );
+
+    if (career.length > 0) {
+      contactData.appendChild(
+        createWebsiteList("Cariere / Jobs:", career, "Copiază link cariere")
+      );
+    }
+
+    // Section 3: Alte informații
+    const otherHeading = document.createElement("div");
+    otherHeading.className = "company-details-heading";
+
+    const otherH3 = document.createElement("h3");
+    otherH3.textContent = "Alte informații";
+    otherHeading.appendChild(otherH3);
+
+    const otherData = document.createElement("div");
+    otherData.className = "company-details-data";
+
+    const scraperHref =
+      scraper !== "--"
+        ? scraper.startsWith("http")
+          ? scraper
+          : `https://github.com/peviitor-scrapers/${scraper}`
+        : null;
+
+    otherData.append(
+      createLinkFieldWithCopy(
+        "Link scraper:",
+        scraper,
+        scraperHref,
+        "company-scraper",
+        "Copiază scraper"
+      ),
+      createLinkFieldWithCopy(
+        "Link logo:",
+        logo,
+        logo !== "--" ? logo : null,
+        "company-logo",
+        "Copiază logo"
+      )
+    );
+
+    details.append(
+      generalHeading,
+      generalData,
+      contactHeading,
+      contactData,
+      otherHeading,
+      otherData
+    );
+
+    cardContainer.replaceChildren(heading, details);
+
+    const sidebarAdminEditLink = document.getElementById("sidebarAdminEditLink");
+    if (sidebarAdminEditLink) {
+      sidebarAdminEditLink.href = `admin.html?id=${encodeURIComponent(
+        cui !== "--" ? cui : cleanId
+      )}&name=${encodeURIComponent(companyName)}`;
+    }
   } catch (error) {
     console.error("Failed to load company details:", error);
     document.getElementById("company-card").innerText =

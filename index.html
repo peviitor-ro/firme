@@ -3,94 +3,83 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Firme-Ro</title>
+    <title>Firme-Ro - Catalog Firme România</title>
     <link rel="icon" type="image/x-icon" href="/assets/favicon.png" />
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css" rel="stylesheet" />
     <link rel="stylesheet" href="./styles/global.css" />
     <link rel="stylesheet" href="./styles/style.css" />
   </head>
   <body>
     <main>
-      <div class="left f-col">
-        <a href="#">
-          <img class="logo" src="./assets/logo.png" alt="Firme.ro" />
-        </a>
+      <!-- YouTube-style Modern Sidebar -->
+      <aside class="sidebar f-col">
+        <div class="sidebar-top">
+          <a href="index.html" class="sidebar-brand">
+            <img class="logo" src="./assets/logo.png" alt="Firme.ro" />
+          </a>
+        </div>
 
-        <!-- Disabled until integration of admin into firme -->
-        <!-- <a href="https://admin.zira.ro/">Către admin</a> -->
+        <div class="sidebar-divider"></div>
 
-        <form id="customForm">
-          <div class="form-group">
-            <input
-              type="text"
-              id="searchInput"
-              autocomplete="off"
-              placeholder="Caută nume, CUI, etc."
-            />
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="32"
-              height="32"
-              viewBox="0 0 32 32"
-              class="search-icon"
-              focusable="false"
-              role="img"
-              aria-hidden="true"
-              style="
-                position: absolute;
-                top: 50%;
-                left: 9px;
-                transform: translateY(-50%);
-              "
-            >
-              <path
-                class="euiIcon__fillSecondary"
-                d="M11.63 8h7.38v2h-7.38z"
-              ></path>
-              <path d="M7 8h3.19v2H7z"></path>
-              <path class="euiIcon__fillSecondary" d="M7 16h7.38v2H7z"></path>
-              <path d="M15.81 16H19v2h-3.19zM7 12h9v2H7z"></path>
-              <path
-                d="M13 0C5.82 0 0 5.82 0 13s5.82 13 13 13 13-5.82 13-13A13 13 0 0013 0zm0 24C6.925 24 2 19.075 2 13S6.925 2 13 2s11 4.925 11 11-4.925 11-11 11zM22.581 23.993l1.414-1.414 7.708 7.708-1.414 1.414z"
-              ></path>
-            </svg>
-            <!-- <button type="submit">Caută</button> -->
-          </div>
-          <div class="filter-gorup f-col">
-            <label
-              ><input type="checkbox" id="hasWebsite" /> Firme cu website</label
-            >
-            <label
-              ><input type="checkbox" id="noWebsite" /> Firme fără
-              website</label
-            >
-          </div>
-        </form>
-      </div>
+        <div class="sidebar-middle">
+          <form id="customForm" class="sidebar-form">
+            <div class="form-group search-input-group">
+              <input
+                type="text"
+                id="searchInput"
+                autocomplete="off"
+                placeholder="Caută nume, CUI, etc."
+              />
+              <button type="submit" id="searchSubmitBtn" class="search-submit-btn" title="Caută">
+                <i class="ri-search-line"></i>
+              </button>
+            </div>
 
-      <div class="right f-col">
+            <div class="sidebar-section-title">
+              <i class="ri-filter-3-line"></i>
+              <span>Filtrare Website</span>
+            </div>
+
+            <div class="filter-group f-col">
+              <label class="filter-checkbox">
+                <input type="checkbox" id="hasWebsite" />
+                <span class="custom-checkbox"><i class="ri-check-line"></i></span>
+                <span class="filter-label"><i class="ri-global-line"></i> Cu website</span>
+              </label>
+              <label class="filter-checkbox">
+                <input type="checkbox" id="noWebsite" />
+                <span class="custom-checkbox"><i class="ri-check-line"></i></span>
+                <span class="filter-label"><i class="ri-link-unlink-m"></i> Fără website</span>
+              </label>
+            </div>
+          </form>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <!-- Sidebar Base / Footer (Auth & Admin link post-login) -->
+        <div class="sidebar-footer">
+          <div id="sidebarAuthContainer" class="sidebar-auth-wrapper"></div>
+        </div>
+      </aside>
+
+      <!-- Main Results Area -->
+      <section class="content-area f-col">
         <div class="right-header f-row">
           <div class="active-filters"></div>
           <button id="clearFilters">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="22"
-              height="22"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M9 3v1H4v2h1v14a2 2 0 002 2h10a2 2 0 002-2V6h1V4h-5V3H9zm0 3h6v14H9V6z"
-              />
-            </svg>
-            <span> Reseteaza filtre </span>
+            <i class="ri-refresh-line"></i>
+            <span>Resetează filtre</span>
           </button>
         </div>
+
         <div id="results">
           <div id="firmDetailsContainer" class="company-grid"></div>
         </div>
-      </div>
+      </section>
     </main>
 
+    <script src="./scripts/auth.js"></script>
     <script src="./scripts/app.js"></script>
   </body>
 </html>
