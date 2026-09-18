@@ -134,6 +134,13 @@ a {
   column-gap: 1.5rem;
 }
 
+.company-details-data.other-info-data,
+.other-info-data {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
 .code-field h4 {
   width: fit-content;
   font-size: 0.85rem;
@@ -187,5 +194,12 @@ a {
 
   .company-details-data {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .company-details-data.other-info-data,
+  .other-info-data {
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 }

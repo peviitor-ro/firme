@@ -494,7 +494,7 @@ async function loadCompanyDetails() {
     otherHeading.appendChild(otherH3);
 
     const otherData = document.createElement("div");
-    otherData.className = "company-details-data";
+    otherData.className = "company-details-data other-info-data";
 
     const scraperHref =
       scraper !== "--"
