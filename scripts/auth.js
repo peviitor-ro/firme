@@ -235,11 +235,16 @@ function updateAuthUI() {
     window.location.pathname.endsWith("admin.html") ||
     window.location.href.includes("admin.html");
 
-  // 1. Update body class
+  // 1. Update body class and admin elements visibility
   if (isAuth) {
     document.body.classList.add("authenticated");
   } else {
     document.body.classList.remove("authenticated");
+  }
+
+  const sidebarAdminWrapper = document.getElementById("sidebarAdminWrapper");
+  if (sidebarAdminWrapper) {
+    sidebarAdminWrapper.style.display = isAuth ? "block" : "none";
   }
 
   // 2. Update Sidebar Auth Container (YouTube-style footer)
