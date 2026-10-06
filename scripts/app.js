@@ -12,13 +12,6 @@ let currentPage = 1;
 let rowsPerPage = 20;
 let totalPages = 1;
 
-// Remove diacritics to ensure robust API matching
-function removeDiacritics(str) {
-  return str
-    ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    : "";
-}
-
 // Safely extract and parse JSON payload (object or array) from response
 async function fetchJsonSafely(url) {
   const response = await fetch(url);
@@ -166,10 +159,9 @@ async function searchCompany(query = "", page = 1, rows = 20) {
     }
     // 3. Single call for text search
     else {
-      const normalizedQuery = removeDiacritics(actualQuery); // <-- Normalizes query here
       const data = await fetchJsonSafely(
         `https://api.peviitor.ro/v1/firme/qsearch/?q=${encodeURIComponent(
-          normalizedQuery
+          actualQuery
         )}&page=${page}&rows=${rows}`
       );
 
