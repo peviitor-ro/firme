@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ro">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Detalii Companie - Firme-Ro</title>
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.png" />
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles/global.css" />
+    <link rel="stylesheet" href="./styles/companie.css" />
+    <script src="./scripts/theme.js"></script>
+  </head>
+  <body>
+    <main class="company-main">
+      <aside class="sidebar f-col">
+        <div class="sidebar-top">
+          <div class="sidebar-brand-wrapper">
+            <a href="index.html" class="sidebar-brand">
+              <img
+                class="logo logo-light"
+                src="./assets/logo.svg"
+                alt="Firme.ro"
+              />
+              <img
+                class="logo logo-dark"
+                src="./assets/logo-dark.svg"
+                alt="Firme.ro"
+              />
+            </a>
+            <button
+              id="themeToggleBtn"
+              class="theme-toggle-btn"
+              type="button"
+              aria-label="Comută tema"
+              title="Comută tema"
+            >
+              <i class="ri-moon-line"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-nav">
+          <a href="index.html" id="sidebarBackLink" class="sidebar-nav-item">
+            <i class="ri-arrow-left-line"></i>
+            <span>Înapoi la rezultate</span>
+          </a>
+          <div id="sidebarAdminWrapper" class="sidebar-admin-wrapper">
+            <a
+              href="admin.html"
+              id="sidebarAdminEditLink"
+              class="sidebar-nav-item"
+            >
+              <i class="ri-edit-box-line"></i>
+              <span>Editează în pagina de admin</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <!-- Sidebar Base / Footer (Auth Component) -->
+        <div class="sidebar-footer">
+          <div id="sidebarAuthContainer" class="sidebar-auth-wrapper"></div>
+        </div>
+      </aside>
+
+      <!-- Main Company Details Area -->
+      <section class="company-content f-col">
+        <div class="f-col" id="company-card"></div>
+      </section>
+    </main>
+
+    <script src="./scripts/auth.js"></script>
+    <script src="./scripts/companie.js"></script>
+  </body>
+</html>

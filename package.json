@@ -1,0 +1,9 @@
+{
+  "name": "firme-main",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "npx --yes http-server . -p 5500",
+    "dev": "npx --yes http-server . -p 5500 -c-1"
+  }
+}

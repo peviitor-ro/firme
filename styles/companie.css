@@ -1,0 +1,206 @@
+/* Company Profile Page Styles */
+
+a {
+  text-decoration: none;
+  color: var(--royal-blue);
+}
+
+.separator {
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.copy-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-left: 8px;
+  color: var(--text-muted);
+  transition: color 0.3s ease-in-out;
+}
+
+.copy-btn:hover {
+  color: var(--jade);
+}
+
+/* Company Card Container in Content Area */
+#company-card {
+  width: 100%;
+  padding: 1.75rem;
+  background-color: var(--bg-card);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  box-sizing: border-box;
+  transition: background-color 0.3s ease-in-out, border-color 0.3s ease-in-out;
+}
+
+/* Heading section (Name & Status on same row) */
+.company-heading {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.company-heading h2 {
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* Status section */
+.company-status {
+  display: flex;
+  align-items: center;
+}
+
+.company-status p {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.company-status p span {
+  position: relative;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-left: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.company-status p span::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -0.85rem;
+  transform: translateY(-50%);
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+}
+
+.company-status p .green {
+  color: var(--badge-active-text);
+}
+
+.company-status p .green::before {
+  background-color: var(--badge-active-dot);
+}
+
+.company-status p .red {
+  color: var(--badge-inactive-text);
+}
+
+.company-status p .red::before {
+  background-color: var(--badge-inactive-dot);
+}
+
+/* Details Section */
+.company-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.company-details-heading h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.35rem;
+}
+
+.company-details-heading p {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.company-details-data {
+  display: grid;
+  grid-template-columns: 1fr;
+  row-gap: 1.25rem;
+  column-gap: 1.5rem;
+}
+
+.company-details-data.other-info-data,
+.other-info-data {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.code-field h4 {
+  width: fit-content;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  margin-bottom: 0.3rem;
+  border-bottom: 2px dotted var(--border-strong);
+}
+
+.code-field p {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.company-website h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 0.3rem;
+}
+
+.website-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+}
+
+.company-website-link {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--royal-blue);
+  word-break: break-all;
+}
+
+.company-website-link:hover {
+  text-decoration: underline;
+}
+
+@media screen and (min-width: 768px) {
+  .company-heading {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .company-details-data {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .company-details-data.other-info-data,
+  .other-info-data {
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: 1fr;
+  }
+}
