@@ -14,33 +14,35 @@ export function escapeHtml(str) {
 }
 
 /**
- * Format Romanian phone numbers with proper spacing
+ * Format Romanian phone numbers as +40 XXX XXX XXX.
  */
 export function formatPhoneNumber(value) {
   if (!value) return "";
-  let cleaned = String(value).replace(/[\s\(\)-]/g, "");
+  const rawValue = String(value).trim();
+  const compactValue = rawValue.replace(/[\s\(\)-]/g, "");
 
-  const hasPlus = cleaned.startsWith("+");
-  if (hasPlus) {
-    cleaned = "+" + cleaned.slice(1).replace(/\D/g, "");
-  } else {
-    cleaned = cleaned.replace(/\D/g, "");
+  if (!/^\+?\d*$/.test(compactValue)) {
+    return rawValue;
   }
 
-  if (cleaned.length <= 3) {
-    return cleaned;
+  let nationalValue = compactValue;
+
+  if (compactValue.startsWith("+40")) {
+    nationalValue = compactValue.slice(3);
+  } else if (compactValue.startsWith("0040")) {
+    nationalValue = compactValue.slice(4);
+  } else if (compactValue.startsWith("40")) {
+    nationalValue = compactValue.slice(2);
+  } else if (compactValue.startsWith("0")) {
+    nationalValue = compactValue.slice(1);
   }
 
-  const numDigits = hasPlus ? cleaned.slice(1) : cleaned;
-  let formattedDigits = "";
-  for (let i = 0; i < numDigits.length; i++) {
-    formattedDigits += numDigits[i];
-    if ((i + 1) % 3 === 0 && i !== numDigits.length - 1) {
-      formattedDigits += " ";
-    }
-  }
+  const nationalDigits = nationalValue.replace(/\D/g, "");
 
-  return hasPlus ? "+" + formattedDigits : formattedDigits;
+  if (!nationalDigits) return "+40 ";
+
+  const groups = nationalDigits.match(/.{1,3}/g) || [];
+  return `+40 ${groups.join(" ")}`;
 }
 
 /**
