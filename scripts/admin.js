@@ -12,6 +12,19 @@ import {
   populateInfoField,
 } from "./admin/adminUi.js";
 
+function isValidHttpUrl(value) {
+  try {
+    const url = new URL(value);
+    return (
+      (url.protocol === "http:" || url.protocol === "https:") &&
+      !value.includes("@") &&
+      url.hostname.includes(".")
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Handle search company by name or CUI
  */
@@ -68,8 +81,7 @@ async function handleUpdateField(firm, field, value, flashArea, card, inputEl) {
   }
 
   if (field === "logo") {
-    const urlRegex = /^https?:\/\/[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(\/.*)?$/;
-    if (!urlRegex.test(cleanValue)) {
+    if (!isValidHttpUrl(cleanValue)) {
       showFlash(
         flashArea,
         "URL logo invalid. Trebuie să înceapă cu http:// sau https:// (ex: https://exemplu.ro/logo.png).",
@@ -79,11 +91,26 @@ async function handleUpdateField(firm, field, value, flashArea, card, inputEl) {
     }
   }
 
+  if (field === "website") {
+    if (!isValidHttpUrl(cleanValue)) {
+      showFlash(
+        flashArea,
+        "URL website invalid. Trebuie să fie un link valid (ex: https://exemplu.ro).",
+        "error"
+      );
+      return;
+    }
+  }
+
   if (field === "phone") {
     cleanValue = cleanValue.replace(/[\s\(\)-]/g, "");
-    const phoneCleanRegex = /^\+?\d+$/;
-    if (!phoneCleanRegex.test(cleanValue)) {
-      showFlash(flashArea, "Numărul de telefon trebuie să condatabind doar cifre (opțional '+' la început).", "error");
+    const romanianPhoneRegex = /^(?:0[237]\d{8}|\+40[237]\d{8}|0040[237]\d{8})$/;
+    if (!romanianPhoneRegex.test(cleanValue)) {
+      showFlash(
+        flashArea,
+        "Număr de telefon invalid. Folosiți un număr românesc valid, de exemplu 07xx xxx xxx sau +40 7xx xxx xxx.",
+        "error",
+      );
       return;
     }
   }
