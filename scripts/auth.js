@@ -227,6 +227,23 @@ function toggleSidebarLoginForm() {
   }
 }
 
+// Toggle inline PeViitor login form in sidebar
+function toggleSidebarPeViitorForm() {
+  const form = document.getElementById("sidebarPeViitorForm");
+  const toggleBtn = document.getElementById("sidebarPeViitorToggleBtn");
+  if (!form) return;
+
+  if (form.style.display === "none" || !form.style.display) {
+    form.style.display = "flex";
+    if (toggleBtn) toggleBtn.style.display = "none";
+    const input = document.getElementById("sidebarPeViitorEmail");
+    if (input) input.focus();
+  } else {
+    form.style.display = "none";
+    if (toggleBtn) toggleBtn.style.display = "inline-flex";
+  }
+}
+
 // Update UI in sidebar and main auth containers
 function updateAuthUI() {
   const isAuth = window.authManager.isAuthenticated();
@@ -303,8 +320,71 @@ function updateAuthUI() {
 
       actions.append(navBtn, logoutBtn);
       userCard.append(header, actions);
-      sidebarAuth.replaceChildren(userCard);
+
+      // 2. Duplicated authentication component for testing purposes
+      const peviitorBox = document.createElement("div");
+      peviitorBox.className = "sidebar-auth-box";
+
+      const peviitorHeader = document.createElement("div");
+      peviitorHeader.className = "sidebar-auth-header";
+      const peviitorHeaderIcon = document.createElement("i");
+      peviitorHeaderIcon.className = "ri-mail-send-line";
+      const peviitorHeaderSpan = document.createElement("span");
+      peviitorHeaderSpan.textContent = "Autentificare PeViitor";
+      peviitorHeader.append(peviitorHeaderIcon, peviitorHeaderSpan);
+
+      const peviitorDesc = document.createElement("p");
+      peviitorDesc.className = "sidebar-auth-desc";
+      peviitorDesc.textContent =
+        "Trimite link de autentificare pe email prin PeViitor.";
+
+      const peviitorToggleBtn = document.createElement("button");
+      peviitorToggleBtn.id = "sidebarPeViitorToggleBtn";
+      peviitorToggleBtn.className = "sidebar-auth-toggle-btn";
+      peviitorToggleBtn.onclick = toggleSidebarPeViitorForm;
+      const peviitorLoginIcon = document.createElement("i");
+      peviitorLoginIcon.className = "ri-login-box-line";
+      peviitorToggleBtn.append(
+        peviitorLoginIcon,
+        document.createTextNode(" Conectare"),
+      );
+
+      const peviitorForm = document.createElement("form");
+      peviitorForm.id = "sidebarPeViitorForm";
+      peviitorForm.className = "sidebar-login-form";
+      peviitorForm.style.display = "none";
+      peviitorForm.onsubmit = handleSidebarPeViitorLogin;
+
+      const peviitorInput = document.createElement("input");
+      peviitorInput.type = "email";
+      peviitorInput.id = "sidebarPeViitorEmail";
+      peviitorInput.placeholder = "email@exemplu.com";
+      peviitorInput.required = true;
+
+      const peviitorSubmitBtn = document.createElement("button");
+      peviitorSubmitBtn.type = "submit";
+      peviitorSubmitBtn.className = "sidebar-login-submit-btn";
+      peviitorSubmitBtn.title = "Trimite link";
+      const peviitorSendIcon = document.createElement("i");
+      peviitorSendIcon.className = "ri-send-plane-fill";
+      peviitorSubmitBtn.appendChild(peviitorSendIcon);
+
+      peviitorForm.append(peviitorInput, peviitorSubmitBtn);
+
+      const peviitorMsgDiv = document.createElement("div");
+      peviitorMsgDiv.id = "sidebarPeViitorMsg";
+
+      peviitorBox.append(
+        peviitorHeader,
+        peviitorDesc,
+        peviitorToggleBtn,
+        peviitorForm,
+        peviitorMsgDiv,
+      );
+
+      sidebarAuth.replaceChildren(userCard, peviitorBox);
     } else {
+      // 1. Primary authentication
       const authBox = document.createElement("div");
       authBox.className = "sidebar-auth-box";
 
@@ -355,6 +435,7 @@ function updateAuthUI() {
       msgDiv.id = "sidebarAuthMsg";
 
       authBox.append(header, desc, toggleBtn, form, msgDiv);
+
       sidebarAuth.replaceChildren(authBox);
     }
   }
@@ -441,6 +522,84 @@ async function handleSidebarLogin(event) {
     const warnIcon = document.createElement("i");
     warnIcon.className = "ri-error-warning-line";
     errorDiv.append(warnIcon, document.createTextNode(` ${error.message}`));
+    msgEl.replaceChildren(errorDiv);
+  }
+}
+
+// Handle login from PeViitor sidebar form
+async function handleSidebarPeViitorLogin(event) {
+  event.preventDefault();
+  const input = document.getElementById("sidebarPeViitorEmail");
+  const msgEl = document.getElementById("sidebarPeViitorMsg");
+  if (!input || !msgEl) return;
+
+  const email = input.value.trim();
+  if (!email || !window.authManager.isValidEmail(email)) {
+    const errorDiv = document.createElement("div");
+    errorDiv.className = "sidebar-msg error";
+    const warnIcon = document.createElement("i");
+    warnIcon.className = "ri-error-warning-line";
+    errorDiv.append(
+      warnIcon,
+      document.createTextNode(" Invalid email address."),
+    );
+    msgEl.replaceChildren(errorDiv);
+    return;
+  }
+
+  try {
+    const infoDiv = document.createElement("div");
+    infoDiv.className = "sidebar-msg info";
+    const spinIcon = document.createElement("i");
+    spinIcon.className = "ri-loader-4-line ri-spin";
+    infoDiv.append(spinIcon, document.createTextNode(" Sending..."));
+    msgEl.replaceChildren(infoDiv);
+
+    const targetUrl = `https://api.peviitor.ro/v1/firme/auth/send_email/?email=${encodeURIComponent(email)}`;
+    const response = await fetch(targetUrl, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch (_) {
+      // Ignore JSON parse error if response is not JSON
+    }
+
+    if (!response.ok) {
+      const errorMsg =
+        data && data.error ? data.error : `Status: ${response.status}`;
+      throw new Error(errorMsg);
+    }
+
+    const successDiv = document.createElement("div");
+    successDiv.className = "sidebar-msg success";
+    const mailIcon = document.createElement("i");
+    mailIcon.className = "ri-mail-check-line";
+    successDiv.append(
+      mailIcon,
+      document.createTextNode(" Link sent to email!"),
+    );
+    msgEl.replaceChildren(successDiv);
+  } catch (error) {
+    let displayMsg = error.message || "Failed to fetch";
+    if (
+      error.name === "TypeError" ||
+      displayMsg.toLowerCase().includes("failed to fetch") ||
+      displayMsg.toLowerCase().includes("network")
+    ) {
+      displayMsg = "Failed to fetch";
+    }
+
+    const errorDiv = document.createElement("div");
+    errorDiv.className = "sidebar-msg error";
+    const warnIcon = document.createElement("i");
+    warnIcon.className = "ri-error-warning-line";
+    errorDiv.append(warnIcon, document.createTextNode(` ${displayMsg}`));
     msgEl.replaceChildren(errorDiv);
   }
 }
