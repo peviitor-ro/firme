@@ -1,0 +1,11 @@
+{
+  "name": "firme-main",
+  "version": "1.0.0",
+  "description": "Company catalog search project",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx --yes http-server . -p 5500 -c-1",
+    "dev": "npx --yes http-server . -p 5500 -c-1"
+  },
+  "dependencies": {}
+}

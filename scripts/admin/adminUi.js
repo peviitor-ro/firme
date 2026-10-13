@@ -374,10 +374,11 @@ export function displayFirmAdminDetails(firms, callbacks = {}) {
 
         if (key === "phone") {
           input.value = formatPhoneNumber(initialValue);
+          if (!input.value) input.value = "+40 ";
           input.addEventListener("input", (e) => {
             const cursorPosition = input.selectionStart;
             const oldValue = input.value;
-            const newValue = formatPhoneNumber(e.target.value);
+            const newValue = formatPhoneNumber(e.target.value) || "+40 ";
             input.value = newValue;
             const diff = newValue.length - oldValue.length;
             input.selectionEnd = cursorPosition + diff;
