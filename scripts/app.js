@@ -172,15 +172,23 @@ async function searchCompany(query = "", page = 1, rows = 20) {
     // 3. Single call for text search
     else {
       const normalizedQuery = removeDiacritics(actualQuery);
-      const data = await fetchJsonSafely(
-        `https://api.peviitor.ro/v1/firme/qsearch/?q=${encodeURIComponent(
-          normalizedQuery
-        )}&page=${page}&rows=${rows}`
-      );
+      const searchQueries = [normalizedQuery];
+      if (normalizedQuery !== actualQuery) {
+        searchQueries.push(actualQuery);
+      }
 
-      if (data && data.docs && Array.isArray(data.docs)) {
-        docs = data.docs;
-        totalPagesCount = data.pagination?.total_pages || 1;
+      for (const searchQuery of searchQueries) {
+        const data = await fetchJsonSafely(
+          `https://api.peviitor.ro/v1/firme/qsearch/?q=${encodeURIComponent(
+            searchQuery
+          )}&page=${page}&rows=${rows}`
+        );
+
+        if (data && Array.isArray(data.docs) && data.docs.length > 0) {
+          docs = data.docs;
+          totalPagesCount = data.pagination?.total_pages || 1;
+          break;
+        }
       }
     }
 
