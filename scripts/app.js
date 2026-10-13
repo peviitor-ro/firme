@@ -15,7 +15,12 @@ let totalPages = 1;
 // Remove diacritics to ensure robust API matching
 function removeDiacritics(str) {
   return str
-    ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    ? str
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[șȘ]/g, "s")
+        .replace(/[țȚ]/g, "t")
+        .toLowerCase()
     : "";
 }
 
