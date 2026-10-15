@@ -24,7 +24,9 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  transition: background-color 0.3s ease-in-out, border-color 0.3s ease-in-out;
+  transition:
+    background-color 0.3s ease-in-out,
+    border-color 0.3s ease-in-out;
 }
 
 .admin-sidebar-top {
@@ -134,7 +136,9 @@
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  transition: background-color 0.3s ease-in-out, border-color 0.3s ease-in-out;
+  transition:
+    background-color 0.3s ease-in-out,
+    border-color 0.3s ease-in-out;
 }
 
 .sidebar-auth-header {
@@ -172,7 +176,11 @@
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out, border-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+  transition:
+    background-color 0.3s ease-in-out,
+    color 0.3s ease-in-out,
+    border-color 0.3s ease-in-out,
+    box-shadow 0.3s ease-in-out;
 }
 
 .sidebar-auth-toggle-btn:hover {
@@ -197,7 +205,10 @@
   border-radius: 6px;
   font-size: 0.8rem;
   outline: none;
-  transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out, border-color 0.3s ease-in-out;
+  transition:
+    background-color 0.3s ease-in-out,
+    color 0.3s ease-in-out,
+    border-color 0.3s ease-in-out;
 }
 
 .sidebar-login-form input:focus {
@@ -205,7 +216,10 @@
 }
 
 .sidebar-login-submit-btn {
-  padding: 0.5rem 0.75rem;
+  width: 38px;
+  min-width: 38px;
+  flex-shrink: 0;
+  padding: 0;
   background: var(--btn-primary-bg);
   color: var(--btn-primary-text);
   border: none;
@@ -214,11 +228,45 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+  transition:
+    background-color 0.3s ease-in-out,
+    color 0.3s ease-in-out;
 }
 
-.sidebar-login-submit-btn:hover {
+.sidebar-login-submit-btn:hover:not(:disabled) {
   background: var(--btn-primary-hover);
+}
+
+.sidebar-login-submit-btn:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Loader Component */
+.loader {
+  --color-1: #ffffff;
+  --color-2: var(--btn-danger-bg, #ef4444);
+  --size: 0.35px;
+
+  width: calc(48 * var(--size));
+  height: calc(48 * var(--size));
+  border: calc(6 * var(--size)) solid var(--color-1);
+  border-bottom-color: var(--color-2);
+  border-radius: 50%;
+  display: inline-block;
+  box-sizing: border-box;
+  animation: rotation 1s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes rotation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .sidebar-msg {
@@ -321,7 +369,9 @@
   font-size: 0.8rem;
   font-weight: 600;
   text-decoration: none;
-  transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+  transition:
+    background-color 0.3s ease-in-out,
+    color 0.3s ease-in-out;
 }
 
 .sidebar-admin-btn:hover {
@@ -340,7 +390,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+  transition:
+    background-color 0.3s ease-in-out,
+    color 0.3s ease-in-out;
 }
 
 .sidebar-logout-btn:hover {
@@ -436,7 +488,9 @@
   border: 1px solid var(--border-color);
   border-radius: 16px;
   box-sizing: border-box;
-  transition: background-color 0.3s ease-in-out, border-color 0.3s ease-in-out;
+  transition:
+    background-color 0.3s ease-in-out,
+    border-color 0.3s ease-in-out;
 }
 
 .admin-header {
@@ -529,7 +583,9 @@
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+  transition:
+    background-color 0.3s ease-in-out,
+    color 0.3s ease-in-out;
   white-space: nowrap;
 }
 
@@ -548,7 +604,9 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  transition: background-color 0.3s ease-in-out, border-color 0.3s ease-in-out;
+  transition:
+    background-color 0.3s ease-in-out,
+    border-color 0.3s ease-in-out;
 }
 
 /* Card Top Header */

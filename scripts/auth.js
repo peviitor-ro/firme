@@ -477,21 +477,35 @@ function updateAuthUI() {
 }
 
 // Handle login from sidebar form
+let isSidebarLoginSubmitting = false;
+
 async function handleSidebarLogin(event) {
   event.preventDefault();
+  if (isSidebarLoginSubmitting) return;
+
+  const form = document.getElementById("sidebarLoginForm");
   const input = document.getElementById("sidebarLoginEmail");
+  const submitBtn = form ? form.querySelector("button[type='submit']") : null;
   const msgEl = document.getElementById("sidebarAuthMsg");
   if (!input || !msgEl) return;
 
   const email = input.value.trim();
   localStorage.setItem("auth_email", email);
 
+  isSidebarLoginSubmitting = true;
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.replaceChildren();
+    const loader = document.createElement("span");
+    loader.className = "loader";
+    submitBtn.appendChild(loader);
+  }
+  if (input) input.disabled = true;
+
   try {
     const infoDiv = document.createElement("div");
     infoDiv.className = "sidebar-msg info";
-    const spinIcon = document.createElement("i");
-    spinIcon.className = "ri-loader-4-line ri-spin";
-    infoDiv.append(spinIcon, document.createTextNode(" Se trimite..."));
+    infoDiv.textContent = "Se trimite...";
     msgEl.replaceChildren(infoDiv);
 
     const result = await window.authManager.requestLogin(email);
@@ -523,13 +537,29 @@ async function handleSidebarLogin(event) {
     warnIcon.className = "ri-error-warning-line";
     errorDiv.append(warnIcon, document.createTextNode(` ${error.message}`));
     msgEl.replaceChildren(errorDiv);
+  } finally {
+    isSidebarLoginSubmitting = false;
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.replaceChildren();
+      const sendIcon = document.createElement("i");
+      sendIcon.className = "ri-send-plane-fill";
+      submitBtn.appendChild(sendIcon);
+    }
+    if (input) input.disabled = false;
   }
 }
 
 // Handle login from PeViitor sidebar form
+let isPeViitorSubmitting = false;
+
 async function handleSidebarPeViitorLogin(event) {
   event.preventDefault();
+  if (isPeViitorSubmitting) return;
+
+  const form = document.getElementById("sidebarPeViitorForm");
   const input = document.getElementById("sidebarPeViitorEmail");
+  const submitBtn = form ? form.querySelector("button[type='submit']") : null;
   const msgEl = document.getElementById("sidebarPeViitorMsg");
   if (!input || !msgEl) return;
 
@@ -547,12 +577,20 @@ async function handleSidebarPeViitorLogin(event) {
     return;
   }
 
+  isPeViitorSubmitting = true;
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.replaceChildren();
+    const loader = document.createElement("span");
+    loader.className = "loader";
+    submitBtn.appendChild(loader);
+  }
+  if (input) input.disabled = true;
+
   try {
     const infoDiv = document.createElement("div");
     infoDiv.className = "sidebar-msg info";
-    const spinIcon = document.createElement("i");
-    spinIcon.className = "ri-loader-4-line ri-spin";
-    infoDiv.append(spinIcon, document.createTextNode(" Sending..."));
+    infoDiv.textContent = "Sending...";
     msgEl.replaceChildren(infoDiv);
 
     const targetUrl = `https://api.peviitor.ro/v1/firme/auth/send_email/?email=${encodeURIComponent(email)}`;
@@ -601,6 +639,16 @@ async function handleSidebarPeViitorLogin(event) {
     warnIcon.className = "ri-error-warning-line";
     errorDiv.append(warnIcon, document.createTextNode(` ${displayMsg}`));
     msgEl.replaceChildren(errorDiv);
+  } finally {
+    isPeViitorSubmitting = false;
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.replaceChildren();
+      const sendIcon = document.createElement("i");
+      sendIcon.className = "ri-send-plane-fill";
+      submitBtn.appendChild(sendIcon);
+    }
+    if (input) input.disabled = false;
   }
 }
 

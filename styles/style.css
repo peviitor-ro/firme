@@ -390,7 +390,10 @@ main {
 }
 
 .sidebar-login-submit-btn {
-  padding: 0.5rem 0.75rem;
+  width: 38px;
+  min-width: 38px;
+  flex-shrink: 0;
+  padding: 0;
   background: var(--btn-primary-bg);
   color: var(--btn-primary-text);
   border: none;
@@ -404,8 +407,40 @@ main {
     color 0.3s ease-in-out;
 }
 
-.sidebar-login-submit-btn:hover {
+.sidebar-login-submit-btn:hover:not(:disabled) {
   background: var(--btn-primary-hover);
+}
+
+.sidebar-login-submit-btn:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Loader Component */
+.loader {
+  --color-1: #ffffff;
+  --color-2: var(--btn-danger-bg, #ef4444);
+  --size: 0.35px;
+
+  width: calc(48 * var(--size));
+  height: calc(48 * var(--size));
+  border: calc(6 * var(--size)) solid var(--color-1);
+  border-bottom-color: var(--color-2);
+  border-radius: 50%;
+  display: inline-block;
+  box-sizing: border-box;
+  animation: rotation 1s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes rotation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .sidebar-msg {
