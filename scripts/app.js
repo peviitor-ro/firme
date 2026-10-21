@@ -12,14 +12,17 @@ let currentPage = 1;
 let rowsPerPage = 20;
 let totalPages = 1;
 
-// Remove diacritics to ensure robust API matching
+// Robust diacritic removal for Romanian characters (handles comma-below, cedillas, ă, â, î)
 function removeDiacritics(str) {
   return str
     ? str
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[șȘ]/g, "s")
-        .replace(/[țȚ]/g, "t")
+        .replace(/[șȘşŞ]/g, "s")
+        .replace(/[țȚţŢ]/g, "t")
+        .replace(/[ăĂ]/g, "a")
+        .replace(/[âÂ]/g, "a")
+        .replace(/[îÎ]/g, "i")
         .toLowerCase()
     : "";
 }
@@ -115,6 +118,63 @@ function extractLocation(company, anaf = {}) {
   };
 }
 
+function getWebsiteValues(company) {
+  const websites = Array.isArray(company.website)
+    ? [...company.website]
+    : company.website
+    ? [company.website]
+    : [];
+
+  let anaf = {};
+  if (Array.isArray(company.anafData) && company.anafData.length > 0) {
+    try {
+      anaf =
+        typeof company.anafData[0] === "string"
+          ? JSON.parse(company.anafData[0])
+          : company.anafData[0] || {};
+    } catch (error) {
+      console.warn("Could not parse ANAF data for website filtering:", error);
+    }
+  }
+
+  if (anaf.website) {
+    websites.push(anaf.website);
+  }
+
+  return websites
+    .filter((website) => website !== null && website !== undefined)
+    .map((website) => String(website).trim())
+    .filter(Boolean);
+}
+
+async function loadCompanyDetails(companies) {
+  const companiesWithIds = companies.filter((company) => company.id);
+  const details = await Promise.allSettled(
+    companiesWithIds.map(async (company) => {
+      const response = await fetchJsonSafely(
+        `https://api.peviitor.ro/v1/firme/search/?id=${encodeURIComponent(
+          company.id
+        )}`
+      );
+      return Array.isArray(response) ? response[0] : null;
+    })
+  );
+
+  details.forEach((result, index) => {
+    if (result.status === "fulfilled" && result.value) {
+      const company = companiesWithIds[index];
+      Object.assign(company, result.value);
+    } else if (result.status === "rejected") {
+      console.warn(
+        `Could not load details for company ${companiesWithIds[index].id}:`,
+        result.reason
+      );
+    }
+  });
+
+  return companies;
+}
+
 // Handle search form submission
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -142,6 +202,8 @@ async function searchCompany(query = "", page = 1, rows = 20) {
     let totalPagesCount = 1;
 
     // 1. Single call to list all 16000+ companies when query is empty
+    // 1. Fetch all companies with full details when query is empty
+   // 1. Single call to list all 16000+ companies when query is empty
     if (!actualQuery) {
       const data = await fetchJsonSafely(
         `https://api.peviitor.ro/v1/companies/?count=true&page=${page}&rows=${rows}`
@@ -173,7 +235,7 @@ async function searchCompany(query = "", page = 1, rows = 20) {
     else {
       const normalizedQuery = removeDiacritics(actualQuery);
       const searchQueries = [normalizedQuery];
-      if (normalizedQuery !== actualQuery) {
+      if (normalizedQuery !== actualQuery.toLowerCase()) {
         searchQueries.push(actualQuery);
       }
 
@@ -190,6 +252,10 @@ async function searchCompany(query = "", page = 1, rows = 20) {
           break;
         }
       }
+    }
+
+    if (!actualQuery && docs.length > 0) {
+      docs = await loadCompanyDetails(docs);
     }
 
     totalPages = totalPagesCount;
@@ -239,20 +305,10 @@ checkboxHasWebsite.addEventListener("change", () => {
 // Apply website filters
 function applyFilters(companies) {
   if (checkboxNoWebsite.checked) {
-    return companies.filter((company) => {
-      const website = Array.isArray(company.website)
-        ? company.website[0]
-        : company.website;
-      return !website || String(website).trim() === "";
-    });
+    return companies.filter((company) => getWebsiteValues(company).length === 0);
   }
   if (checkboxHasWebsite.checked) {
-    return companies.filter((company) => {
-      const website = Array.isArray(company.website)
-        ? company.website[0]
-        : company.website;
-      return website && String(website).trim().length > 0;
-    });
+    return companies.filter((company) => getWebsiteValues(company).length > 0);
   }
   return companies;
 }
