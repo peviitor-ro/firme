@@ -201,12 +201,16 @@ async function searchCompany(query = "", page = 1, rows = 20) {
     let docs = [];
     let totalPagesCount = 1;
 
+fix/website-filter
     // 1. Single call to list all 16000+ companies when query is empty
     // 1. Fetch all companies with full details when query is empty
    // 1. Single call to list all 16000+ companies when query is empty
+
+    // 1. Call to list all companies when query is empty
+ main
     if (!actualQuery) {
       const data = await fetchJsonSafely(
-        `https://api.peviitor.ro/v1/companies/?count=true&page=${page}&rows=${rows}`
+        `https://api.peviitor.ro/v1/companies/?count=true&page=${page}&rows=${rows}`,
       );
 
       if (data && Array.isArray(data.companies)) {
@@ -219,31 +223,46 @@ async function searchCompany(query = "", page = 1, rows = 20) {
         totalPagesCount = Math.ceil(total / rows) || 1;
       }
     }
-    // 2. Single call for CIF lookup
+    // 2. Call for CIF lookup
     else if (isCifQuery && cleanCif) {
       const res = await fetchJsonSafely(
         `https://api.peviitor.ro/v1/firme/search/?id=${encodeURIComponent(
-          cleanCif
-        )}`
+          cleanCif,
+        )}`,
       );
       if (Array.isArray(res)) {
         docs = res;
         totalPagesCount = 1;
       }
     }
-    // 3. Single call for text search
+    // 3. Call for text search
     else {
+      const cedillaQuery = actualQuery
+        .replace(/ș/g, "ş")
+        .replace(/Ș/g, "Ş")
+        .replace(/ț/g, "ţ")
+        .replace(/Ț/g, "Ţ");
       const normalizedQuery = removeDiacritics(actualQuery);
+ fix/website-filter
       const searchQueries = [normalizedQuery];
       if (normalizedQuery !== actualQuery.toLowerCase()) {
         searchQueries.push(actualQuery);
+
+      const searchQueries = [];
+      if (cedillaQuery !== actualQuery) {
+        searchQueries.push(cedillaQuery);
+      }
+      searchQueries.push(actualQuery);
+      if (normalizedQuery !== actualQuery && normalizedQuery !== cedillaQuery) {
+        searchQueries.push(normalizedQuery);
+ main
       }
 
       for (const searchQuery of searchQueries) {
         const data = await fetchJsonSafely(
           `https://api.peviitor.ro/v1/firme/qsearch/?q=${encodeURIComponent(
-            searchQuery
-          )}&page=${page}&rows=${rows}`
+            searchQuery,
+          )}&page=${page}&rows=${rows}`,
         );
 
         if (data && Array.isArray(data.docs) && data.docs.length > 0) {
@@ -283,7 +302,8 @@ async function searchCompany(query = "", page = 1, rows = 20) {
     const errDiv = document.createElement("div");
     errDiv.className = "no-results-msg";
     const em = document.createElement("em");
-    em.textContent = "Eroare la încărcare date: nu s-a putut conecta la server.";
+    em.textContent =
+      "Eroare la încărcare date: nu s-a putut conecta la server.";
     errDiv.appendChild(em);
     container.replaceChildren(errDiv);
   }
@@ -399,7 +419,7 @@ function renderCompanies(companies) {
 
       statusBadge.append(
         dot,
-        document.createTextNode(` ${isActive ? "Activ" : "Inactiv"}`)
+        document.createTextNode(` ${isActive ? "Activ" : "Inactiv"}`),
       );
       cardHeader.appendChild(statusBadge);
 
@@ -460,7 +480,7 @@ function renderCompanies(companies) {
     const link = document.createElement("a");
     link.className = "company-link";
     link.href = `companie.html?id=${encodeURIComponent(
-      companyId
+      companyId,
     )}&name=${encodeURIComponent(companyName)}`;
 
     const linkText = document.createElement("span");

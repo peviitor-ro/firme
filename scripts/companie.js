@@ -261,26 +261,43 @@ async function loadCompanyDetails() {
     // Search by name or query via qsearch
     const query = name || id;
     if (!company && query) {
-      try {
-        const qData = await fetchJsonSafely(
-          `https://api.peviitor.ro/v1/firme/qsearch/?q=${encodeURIComponent(query)}`
-        );
-        if (qData && qData.docs && Array.isArray(qData.docs) && qData.docs.length > 0) {
-          const match =
-            qData.docs.find(
-              (c) =>
-                (cleanId && String(c.id).trim() === String(cleanId).trim()) ||
-                (name &&
-                  c.company &&
-                  c.company.trim().toLowerCase() === name.trim().toLowerCase())
-            ) || qData.docs[0];
+      const cedillaQuery = query
+        .replace(/ș/g, "ş")
+        .replace(/Ș/g, "Ş")
+        .replace(/ț/g, "ţ")
+        .replace(/Ț/g, "Ţ");
+      const queriesToTry =
+        cedillaQuery !== query ? [cedillaQuery, query] : [query];
 
-          if (match) {
-            company = match;
+      for (const q of queriesToTry) {
+        try {
+          const qData = await fetchJsonSafely(
+            `https://api.peviitor.ro/v1/firme/qsearch/?q=${encodeURIComponent(q)}`
+          );
+          if (
+            qData &&
+            qData.docs &&
+            Array.isArray(qData.docs) &&
+            qData.docs.length > 0
+          ) {
+            const match =
+              qData.docs.find(
+                (c) =>
+                  (cleanId && String(c.id).trim() === String(cleanId).trim()) ||
+                  (name &&
+                    c.company &&
+                    (c.company.trim().toLowerCase() === name.trim().toLowerCase() ||
+                      c.company.trim().toLowerCase() === cedillaQuery.trim().toLowerCase()))
+              ) || qData.docs[0];
+
+            if (match) {
+              company = match;
+              break;
+            }
           }
+        } catch (err) {
+          console.warn("Query search failed:", err);
         }
-      } catch (err) {
-        console.warn("Query search failed:", err);
       }
     }
 
