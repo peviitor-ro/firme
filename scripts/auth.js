@@ -210,6 +210,49 @@ class AuthManager {
 // Global auth manager instance
 window.authManager = new AuthManager();
 
+// Create a masked email input with eye show/hide toggle
+function createMaskedEmailInput({ id, placeholder = "email@exemplu.com" }) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "sidebar-input-wrapper";
+
+  const input = document.createElement("input");
+  input.type = "password";
+  input.id = id;
+  input.placeholder = placeholder;
+  input.required = true;
+  input.autocomplete = "off";
+  input.setAttribute("autocomplete", "off");
+  input.setAttribute("autocorrect", "off");
+  input.setAttribute("autocapitalize", "off");
+  input.setAttribute("spellcheck", "false");
+
+  const toggleBtn = document.createElement("button");
+  toggleBtn.type = "button";
+  toggleBtn.className = "sidebar-password-toggle-btn";
+  toggleBtn.title = "Afișează emailul";
+  toggleBtn.setAttribute("aria-label", "Afișează emailul");
+
+  const eyeIcon = document.createElement("i");
+  eyeIcon.className = "ri-eye-line";
+  toggleBtn.appendChild(eyeIcon);
+
+  toggleBtn.addEventListener("click", () => {
+    const isPassword = input.type === "password";
+    input.type = isPassword ? "text" : "password";
+    input.autocomplete = "off";
+    input.setAttribute("autocomplete", "off");
+    eyeIcon.className = isPassword ? "ri-eye-off-line" : "ri-eye-line";
+    toggleBtn.title = isPassword ? "Ascunde emailul" : "Afișează emailul";
+    toggleBtn.setAttribute(
+      "aria-label",
+      isPassword ? "Ascunde emailul" : "Afișează emailul",
+    );
+  });
+
+  wrapper.append(input, toggleBtn);
+  return { wrapper, input };
+}
+
 // Toggle inline login form in sidebar
 function toggleSidebarLoginForm() {
   const form = document.getElementById("sidebarLoginForm");
@@ -352,14 +395,15 @@ function updateAuthUI() {
       const peviitorForm = document.createElement("form");
       peviitorForm.id = "sidebarPeViitorForm";
       peviitorForm.className = "sidebar-login-form";
+      peviitorForm.autocomplete = "off";
+      peviitorForm.setAttribute("autocomplete", "off");
       peviitorForm.style.display = "none";
       peviitorForm.onsubmit = handleSidebarPeViitorLogin;
 
-      const peviitorInput = document.createElement("input");
-      peviitorInput.type = "email";
-      peviitorInput.id = "sidebarPeViitorEmail";
-      peviitorInput.placeholder = "email@exemplu.com";
-      peviitorInput.required = true;
+      const { wrapper: peviitorInputWrapper } = createMaskedEmailInput({
+        id: "sidebarPeViitorEmail",
+        placeholder: "email@exemplu.com",
+      });
 
       const peviitorSubmitBtn = document.createElement("button");
       peviitorSubmitBtn.type = "submit";
@@ -369,7 +413,7 @@ function updateAuthUI() {
       peviitorSendIcon.className = "ri-send-plane-fill";
       peviitorSubmitBtn.appendChild(peviitorSendIcon);
 
-      peviitorForm.append(peviitorInput, peviitorSubmitBtn);
+      peviitorForm.append(peviitorInputWrapper, peviitorSubmitBtn);
 
       const peviitorMsgDiv = document.createElement("div");
       peviitorMsgDiv.id = "sidebarPeViitorMsg";
@@ -412,14 +456,15 @@ function updateAuthUI() {
       const form = document.createElement("form");
       form.id = "sidebarLoginForm";
       form.className = "sidebar-login-form";
+      form.autocomplete = "off";
+      form.setAttribute("autocomplete", "off");
       form.style.display = "none";
       form.onsubmit = handleSidebarLogin;
 
-      const input = document.createElement("input");
-      input.type = "email";
-      input.id = "sidebarLoginEmail";
-      input.placeholder = "email@exemplu.com";
-      input.required = true;
+      const { wrapper: inputWrapper } = createMaskedEmailInput({
+        id: "sidebarLoginEmail",
+        placeholder: "email@exemplu.com",
+      });
 
       const submitBtn = document.createElement("button");
       submitBtn.type = "submit";
@@ -429,7 +474,7 @@ function updateAuthUI() {
       sendIcon.className = "ri-send-plane-fill";
       submitBtn.appendChild(sendIcon);
 
-      form.append(input, submitBtn);
+      form.append(inputWrapper, submitBtn);
 
       const msgDiv = document.createElement("div");
       msgDiv.id = "sidebarAuthMsg";

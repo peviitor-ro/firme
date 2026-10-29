@@ -389,6 +389,40 @@ main {
   border-color: var(--input-border-focus);
 }
 
+.sidebar-input-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-input-wrapper input {
+  width: 100%;
+  padding-right: 2rem;
+}
+
+.sidebar-password-toggle-btn {
+  position: absolute;
+  right: 0.45rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  line-height: 1;
+  border-radius: 4px;
+  transition: color 0.2s ease-in-out;
+}
+
+.sidebar-password-toggle-btn:hover {
+  color: var(--text-primary);
+}
+
 .sidebar-login-submit-btn {
   width: 38px;
   min-width: 38px;
